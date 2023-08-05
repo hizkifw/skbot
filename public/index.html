@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+	<title>skbot</title>
+
+	<style>
+		body {
+			margin: 0;
+			background: #000;
+			color: #fff;
+			font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+			font-size: 1.1rem;
+		}
+
+		.img {
+			height: 100vh;
+			width: auto;
+			/*
+			transform: rotate(-90deg) translateX(-100%) translateY(100%) scaleY(-1);
+			transform-origin: 0 0;
+			*/
+		}
+
+		.row {
+			display: flex;
+		}
+
+		.sidebar {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			padding: 1em;
+		}
+
+		button {
+			background: #555;
+			border: 0;
+			color: #fff;
+			font-size: 1.5rem;
+			padding: 1rem;
+		}
+	</style>
+	<script>
+		function capture() {
+			document.querySelector("#capture").src = "/api/capture?t=" + Date.now()
+		}
+
+		var nextShot = 0;
+		function update() {
+			try {
+				const timerValue = Number(document.querySelector("#timer").value);
+				const timerEnabled = document.querySelector("#timerEnabled").checked;
+				const countdown = document.querySelector("#countdown");
+				const now = Date.now();
+
+				if (timerEnabled) {
+					countdown.innerText = Math.max(0, (nextShot - now) / 1000).toFixed(1);
+
+					if (nextShot < now) {
+						nextShot = now + (timerValue * 1000);
+						capture();
+					}
+				}
+			} catch (ex) {console.error(ex)}
+
+			window.requestAnimationFrame(update);
+		}
+		update();
+
+		function toggleauto(e) {
+			let timerValue = Number(document.querySelector("#timer").value);
+			if (e.checked) {
+				timer = window.setInterval(capture, timerValue * 1000)
+			} else {
+				window.clearInterval(timer)
+			}
+		}
+	</script>
+</head>
+
+<body>
+	<div class="row">
+		<div class="sidebar">
+			<button type="button" onclick="capture()">Capture</button>
+			<label>
+				Timer
+				<input type="number" value="15" min="1" id="timer" />
+			</label>
+			<label>
+				<input type="checkbox" id="timerEnabled" />
+				Auto
+			</label>
+			<h1 style="font-size:6em" id="countdown"></h1>
+		</div>
+		<img src="/api/preview" class="img" />
+		<img src="" class="img" id="capture" />
+	</div>
+
+</body>
+
+</html>
