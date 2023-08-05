@@ -38,6 +38,9 @@
 			background: #555;
 			border: 0;
 			color: #fff;
+		}
+
+		button.big {
 			font-size: 1.5rem;
 			padding: 1rem;
 		}
@@ -56,6 +59,9 @@
 				const now = Date.now();
 
 				if (timerEnabled) {
+					if (now - nextShot > 1000)
+						nextShot = now + (timerValue * 1000);
+
 					countdown.innerText = Math.max(0, (nextShot - now) / 1000).toFixed(1);
 
 					if (nextShot < now) {
@@ -67,26 +73,36 @@
 
 			window.requestAnimationFrame(update);
 		}
-		update();
 
-		function toggleauto(e) {
-			let timerValue = Number(document.querySelector("#timer").value);
-			if (e.checked) {
-				timer = window.setInterval(capture, timerValue * 1000)
-			} else {
-				window.clearInterval(timer)
-			}
+		function updateiso(newval) {
+			fetch("/api/iso?iso=" + newval).then(res => res.text()).then(res => {
+				document.querySelector("#iso").value = res
+			});
+		}
+
+		function setiso() {
+			updateiso(document.querySelector("#iso").value)
+		}
+
+		function onload() {
+			updateiso("");
+			update()
 		}
 	</script>
 </head>
 
-<body>
+<body onload="onload()">
 	<div class="row">
 		<div class="sidebar">
-			<button type="button" onclick="capture()">Capture</button>
+			<button type="button" class="big" onclick="capture()">Capture</button>
+			<label>
+				ISO
+				<input type="text" id="iso" />
+				<button type="button" onclick="setiso()">Set</button>
+			</label>
 			<label>
 				Timer
-				<input type="number" value="15" min="1" id="timer" />
+				<input type="text" value="15" min="1" id="timer" />
 			</label>
 			<label>
 				<input type="checkbox" id="timerEnabled" />

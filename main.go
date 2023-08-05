@@ -39,10 +39,22 @@ func main() {
 	http.HandleFunc("/api/preview", previewHandler)
 	http.HandleFunc("/api/capture", captureHandler)
 	http.HandleFunc("/api/capture/auto", autoCaptureHandler)
+	http.HandleFunc("/api/iso", isoHandler)
 	http.Handle("/captures", http.FileServer(http.Dir(capturesFolder)))
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.ListenAndServe(":8080", nil)
 	camera.Cleanup()
+}
+
+func isoHandler(w http.ResponseWriter, r *http.Request) {
+	newVal := r.URL.Query().Get("iso")
+	if newVal == "" {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(camera.originalIso))
+		return
+	}
+	camera.originalIso = newVal
+	w.Write([]byte(camera.originalIso))
 }
 
 func previewHandler(w http.ResponseWriter, r *http.Request) {
@@ -84,17 +96,29 @@ func previewHandler(w http.ResponseWriter, r *http.Request) {
 func captureAndSave(wJpg io.Writer) (string, error) {
 	timestamp := time.Now().Format("20060102_150405")
 	fnameRaw := fmt.Sprintf("%s/%s.cr2", capturesFolder, timestamp)
+	fnameJpg := fmt.Sprintf("%s/%s.jpg", capturesFolder, timestamp)
 
 	fRaw, err := os.Create(fnameRaw)
 	if err != nil {
-		return "", fmt.Errorf("error creating output file: %w", err)
+		return "", fmt.Errorf("error creating output raw file: %w", err)
+	}
+	fJpg, err := os.Create(fnameJpg)
+	if err != nil {
+		return "", fmt.Errorf("error creating output jpg file: %w", err)
 	}
 
-	if err := camera.CaptureDownloadMulti(fRaw, wJpg, true); err != nil {
+	buf := new(bytes.Buffer)
+	if err := camera.CaptureDownloadMulti(fRaw, buf, true); err != nil {
 		return "", fmt.Errorf("error capturing image: %w", err)
 	}
-
 	log.Printf("Saved %s\n", fnameRaw)
+
+	bufReader := bytes.NewReader(buf.Bytes())
+	io.Copy(wJpg, bufReader)
+	bufReader.Seek(0, 0)
+	io.Copy(fJpg, bufReader)
+	log.Printf("Saved %s\n", fnameJpg)
+
 	return fnameRaw, nil
 }
 
